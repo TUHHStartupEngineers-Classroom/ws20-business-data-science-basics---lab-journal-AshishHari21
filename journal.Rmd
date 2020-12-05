@@ -16,9 +16,7 @@ output:
 knitr::opts_chunk$set(message=FALSE,warning=FALSE, cache=TRUE)
 ```
 
-In the first task, Different analysis was carried out on bike sales with respect to year and location.
-First analysis was on sales by location and it was found out to be North Rhine-Westphalia with highest sales
-Second analysis was on sales by years for different states. 
+This is a solution website for 4 challenges given in the course "Business Data Science Basics".Below you can see both R-scripts and results of individual challenges. 
 
 # Challenge 1 : bike sales report
 
@@ -122,16 +120,77 @@ bike_orderlines_wrangled_tbl %>% write_csv("~/Data science/DS_101/00_data/01_bik
 bike_orderlines_wrangled_tbl %>% write_rds("~/Data science/DS_101/00_data/01_bike_sales/02_wrangled_data/bike_orderlines.rds")
 ```
 
-# My second post (note the order)
+# Data Acquisition
+## Challenge 1. Requesting data from API
+This piece of code is used to request weather data from provider named "7timer"
+```{r}
+library(httr)
+resp <- GET("http://www.7timer.info/bin/api.pl?lon=113.17&lat=23.09&product=astro&output=json")
+resp
+```
+## Challenge 2. web scraping
+Following piece of code gathers the cycle models from radon bikes and its priceses
+```{r}
+library(tidyverse) # Main Package - Loads dplyr, purrr, etc.
+library(rvest)     # HTML Hacking & Web Scraping
+library(xopen)     # Quickly opening URLs
+library(jsonlite)  # converts JSON files to R objects
+library(glue)      # concatenate strings
+library(stringi) 
 
-Last compiled: `r Sys.Date()`
+url_home <- "https://www.radon-bikes.de/"
+xopen(url_home) 
 
-I'm writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom
+html_home <- read_html(url_home)
+list_of_product_types <- html_home%>%
+  html_nodes(css = ".megamenu__item > a")%>%
+  html_text()
 
-# Adding R stuff
 
-So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place. 
+list_of_products_url <- html_home %>%
+  html_nodes(".megamenu__item > a") %>%
+  html_attr("href") %>%
+  enframe(name = NULL, value = "url") %>%
+  mutate(url = str_glue("https://www.radon-bikes.de{url}"))
 
-So, let's say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:
+# selecting first bike category url
+bike_category_url <- list_of_products_url$url[1]
 
-When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You'll learn that all of these things and more can be customized in each R code block.
+xopen(bike_category_url)
+
+# Get the URLs for the bikes of the first category
+html_bike_category  <- read_html(bike_category_url)
+temp_url <- html_bike_category%>%
+  html_node(".a-button--hollow-secondary")%>%
+  html_attr("href")%>%
+  enframe(name = NULL, value = "url") %>%
+  mutate(url = str_glue("https://www.radon-bikes.de{url}"))
+
+temp_url <- temp_url$url[1]
+xopen(temp_url)
+
+bike_category_grid_html <- read_html(temp_url)
+
+list_of_product_names <- bike_category_grid_html%>%
+  html_nodes(css=".m-bikegrid__info > a > div > h4")%>%
+  html_text%>%
+  stringr::str_replace_all(pattern = "\n","")%>%
+  stringr::str_replace_all(pattern = "  ","")%>%
+  enframe(name = NULL, value = "NAME")
+
+
+
+list_of_product_prices <- bike_category_grid_html%>%
+  html_nodes(css=".m-bikegrid__price--active")%>%
+  html_text()%>%
+  stringr::str_extract(pattern = "[0-9€]+")%>%
+  stringr::str_replace(pattern = "€","")%>%
+  as.numeric()%>%
+  enframe(name = NULL, value = "PRICE")
+
+list_of_product_prices = na.omit(list_of_product_prices)
+
+bike_df <- data.frame(list_of_product_names,list_of_product_prices)
+saveRDS(bike_df, "bike_data.rds")
+head(bike_df,10)
+```

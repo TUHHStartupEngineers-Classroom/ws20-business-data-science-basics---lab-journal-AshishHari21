@@ -410,10 +410,10 @@ div.tocify {
 </div>
 
 
-<p>In the first task, Different analysis was carried out on bike sales with respect to year and location. First analysis was on sales by location and it was found out to be North Rhine-Westphalia with highest sales Second analysis was on sales by years for different states.</p>
+<p>This is a solution website for 4 challenges given in the course “Business Data Science Basics”.Below you can see both R-scripts and results of individual challenges.</p>
 <div id="challenge-1-bike-sales-report" class="section level1">
 <h1><span class="header-section-number">1</span> Challenge 1 : bike sales report</h1>
-<p>Last compiled: 2020-12-03</p>
+<p>Last compiled: 2020-12-05</p>
 <p>In the first task, Different analysis was carried out on bike sales with respect to year and location. First analysis was on sales by location and it was found out to be North Rhine-Westphalia with highest sales Second analysis was on sales by years for different states.</p>
 <div id="r-script" class="section level2">
 <h2><span class="header-section-number">1.1</span> R script</h2>
@@ -505,16 +505,110 @@ bike_orderlines_wrangled_tbl %&gt;% write_csv(&quot;~/Data science/DS_101/00_dat
 bike_orderlines_wrangled_tbl %&gt;% write_rds(&quot;~/Data science/DS_101/00_data/01_bike_sales/02_wrangled_data/bike_orderlines.rds&quot;)</code></pre>
 </div>
 </div>
-<div id="my-second-post-note-the-order" class="section level1">
-<h1><span class="header-section-number">2</span> My second post (note the order)</h1>
-<p>Last compiled: 2020-12-03</p>
-<p>I’m writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom</p>
+<div id="data-acquisition" class="section level1">
+<h1><span class="header-section-number">2</span> Data Acquisition</h1>
+<div id="challenge-1.-requesting-data-from-api" class="section level2">
+<h2><span class="header-section-number">2.1</span> Challenge 1. Requesting data from API</h2>
+<p>This piece of code is used to request weather data from provider named “7timer”</p>
+<pre class="r"><code>library(httr)
+resp &lt;- GET(&quot;http://www.7timer.info/bin/api.pl?lon=113.17&amp;lat=23.09&amp;product=astro&amp;output=json&quot;)
+resp</code></pre>
+<pre><code>## Response [http://www.7timer.info/bin/astro.php?lon=113.2&amp;lat=23.1&amp;ac=0&amp;unit=metric&amp;output=json&amp;tzshift=0]
+##   Date: 2020-12-05 21:14
+##   Status: 200
+##   Content-Type: text/html; charset=UTF-8
+##   Size: 5.35 kB
+## {
+##  &quot;product&quot; : &quot;astro&quot; ,
+##  &quot;init&quot; : &quot;2020120512&quot; ,
+##  &quot;dataseries&quot; : [
+##  {
+##      &quot;timepoint&quot; : 3,
+##      &quot;cloudcover&quot; : 1,
+##      &quot;seeing&quot; : 7,
+##      &quot;transparency&quot; : 2,
+##      &quot;lifted_index&quot; : 15,
+## ...</code></pre>
 </div>
-<div id="adding-r-stuff" class="section level1">
-<h1><span class="header-section-number">3</span> Adding R stuff</h1>
-<p>So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place.</p>
-<p>So, let’s say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:</p>
-<p>When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
+<div id="challenge-2.-web-scraping" class="section level2">
+<h2><span class="header-section-number">2.2</span> Challenge 2. web scraping</h2>
+<p>Following piece of code gathers the cycle models from radon bikes and its priceses</p>
+<pre class="r"><code>library(tidyverse) # Main Package - Loads dplyr, purrr, etc.
+library(rvest)     # HTML Hacking &amp; Web Scraping
+library(xopen)     # Quickly opening URLs
+library(jsonlite)  # converts JSON files to R objects
+library(glue)      # concatenate strings
+library(stringi) 
+
+url_home &lt;- &quot;https://www.radon-bikes.de/&quot;
+xopen(url_home) </code></pre>
+<pre><code>## Running cmd /c start &quot;\&quot;\&quot;&quot; /b &quot;https://www.radon-bikes.de/&quot;</code></pre>
+<pre class="r"><code>html_home &lt;- read_html(url_home)
+list_of_product_types &lt;- html_home%&gt;%
+  html_nodes(css = &quot;.megamenu__item &gt; a&quot;)%&gt;%
+  html_text()
+
+
+list_of_products_url &lt;- html_home %&gt;%
+  html_nodes(&quot;.megamenu__item &gt; a&quot;) %&gt;%
+  html_attr(&quot;href&quot;) %&gt;%
+  enframe(name = NULL, value = &quot;url&quot;) %&gt;%
+  mutate(url = str_glue(&quot;https://www.radon-bikes.de{url}&quot;))
+
+# selecting first bike category url
+bike_category_url &lt;- list_of_products_url$url[1]
+
+xopen(bike_category_url)</code></pre>
+<pre><code>## Running cmd /c start &quot;\&quot;\&quot;&quot; /b \
+##   &quot;https://www.radon-bikes.de/mountainbike/hardtail/&quot;</code></pre>
+<pre class="r"><code># Get the URLs for the bikes of the first category
+html_bike_category  &lt;- read_html(bike_category_url)
+temp_url &lt;- html_bike_category%&gt;%
+  html_node(&quot;.a-button--hollow-secondary&quot;)%&gt;%
+  html_attr(&quot;href&quot;)%&gt;%
+  enframe(name = NULL, value = &quot;url&quot;) %&gt;%
+  mutate(url = str_glue(&quot;https://www.radon-bikes.de{url}&quot;))
+
+temp_url &lt;- temp_url$url[1]
+xopen(temp_url)</code></pre>
+<pre><code>## Running cmd /c start &quot;\&quot;\&quot;&quot; /b \
+##   &quot;https://www.radon-bikes.de/mountainbike/hardtail/bikegrid/&quot;</code></pre>
+<pre class="r"><code>bike_category_grid_html &lt;- read_html(temp_url)
+
+list_of_product_names &lt;- bike_category_grid_html%&gt;%
+  html_nodes(css=&quot;.m-bikegrid__info &gt; a &gt; div &gt; h4&quot;)%&gt;%
+  html_text%&gt;%
+  stringr::str_replace_all(pattern = &quot;\n&quot;,&quot;&quot;)%&gt;%
+  stringr::str_replace_all(pattern = &quot;  &quot;,&quot;&quot;)%&gt;%
+  enframe(name = NULL, value = &quot;NAME&quot;)
+
+
+
+list_of_product_prices &lt;- bike_category_grid_html%&gt;%
+  html_nodes(css=&quot;.m-bikegrid__price--active&quot;)%&gt;%
+  html_text()%&gt;%
+  stringr::str_extract(pattern = &quot;[0-9€]+&quot;)%&gt;%
+  stringr::str_replace(pattern = &quot;€&quot;,&quot;&quot;)%&gt;%
+  as.numeric()%&gt;%
+  enframe(name = NULL, value = &quot;PRICE&quot;)
+
+list_of_product_prices = na.omit(list_of_product_prices)
+
+bike_df &lt;- data.frame(list_of_product_names,list_of_product_prices)
+saveRDS(bike_df, &quot;bike_data.rds&quot;)
+head(bike_df,10)</code></pre>
+<pre><code>##                        NAME PRICE
+## 1               JEALOUS 8.0  2599
+## 2               JEALOUS 9.0  2999
+## 3              JEALOUS 10.0  3999
+## 4           JEALOUS 10.0 EA  5299
+## 5              JEALOUS 10.0  3699
+## 6           JEALOUS 10.0 EA  3799
+## 7  NEW JEALOUS SUPERLITE 1X   999
+## 8            JEALOUS AL 8.0   999
+## 9         JEALOUS AL 8.0 HD  1299
+## 10           JEALOUS AL 9.0  1499</code></pre>
+</div>
 </div>
 
 
