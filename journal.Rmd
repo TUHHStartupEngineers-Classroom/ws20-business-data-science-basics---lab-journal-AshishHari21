@@ -129,7 +129,7 @@ resp <- GET("http://www.7timer.info/bin/api.pl?lon=113.17&lat=23.09&product=astr
 resp
 ```
 ## Challenge 2. web scraping
-Following piece of code gathers the cycle models from radon bikes and its priceses
+Following piece of code gathers the cycle models from radon bikes and its prices
 ```{r}
 library(tidyverse) # Main Package - Loads dplyr, purrr, etc.
 library(rvest)     # HTML Hacking & Web Scraping
@@ -195,65 +195,118 @@ saveRDS(bike_df, "bike_data.rds")
 head(bike_df,10)
 ```
 # Challenge 3: Data Wrangling
-This challenge had lot of challenges, and hence was not able to complete it fully. At first I was not able to allocate a vector for merged data since the data was too huge.And when converting patant_tbl to data table system always used to crash. Hence I have answered only the 1st question in this challenge. Since 2nd challenge and third challenge requires data to be merged I was not able to complete it.
+
+R code for US patent data analysis 
 ```{r}
-# library(tidyverse)
-# library(dplyr)
-# library(vroom)
-# library(tictoc)
-# library(data.table)
+library(vroom)
+library(data.table)
+library(tidyverse)
+library(lubridate)
 
-# col_types <- cols_only(
-  # id = col_character(),
-  # type = col_character(),
-  # number = col_character(),
-  # country = col_character(),
-  # date = col_date("%d-%m-%y"),
-  # abstract = col_character(),
-  # title = col_character(),
-  # kind = col_character(),
-  # num_claims = col_double(),
-  # filename = col_character(),
-  # withdrawn = col_double()
-# )
+col_types <- list(
+  id = col_character(),
+  type = col_character(),
+  organization = col_character()
+)
 
-# patent_tbl <- vroom(
-  # file       = "~/Data science/DS_101/00_data/patent/patent.tsv", 
-  # delim      = "\t", 
-  # col_types  = col_types,
-  # na         = c("", "NA", "NULL")
-# )
-# col_types_PA <- cols_only(
-  # patent_id = col_character()
-  # assignee_id = col_character(),
-  # location_id = col_character()
-  # )
-# patent_assignee_tbl <- vroom(
-  # file       = "~/Data science/DS_101/00_data/patent/patent_assignee.tsv", 
-  # delim      = "\t", 
-  # col_types  = col_types_PA,
-  # na         = c("", "NA", "NULL")
-# )
- # col_types_A <- cols_only(
-   # id = col_character(),
-   # type = col_double(),
-   # name_first = col_character(),
-   # name_last = col_character(),
-   # organization = col_character()
- # )
-# assignee_tbl <- vroom(
-  # file       = "~/Data science/DS_101/00_data/patent/assignee.tsv", 
-  # delim      = "\t", 
-  # col_types  = col_types_A,
-  # na         = c("", "NA", "NULL")
-# )
+assignee_tbl <- vroom(
+  file       = "~/Data science/DS_101/00_data/patent/assignee.tsv", 
+  delim      = "\t", 
+  col_types  = col_types,
+  na         = c("", "NA", "NULL")
+)
 
-# # gives the number of times a company is repeated in decending order. From which 
-# # we can get highest to lowest number of patient for each company
-# assignee_tbl %>%
-  # filter(!is.na(organization)) %>%
-  # count(organization) %>%
-  # arrange(desc(n))
+col_types <- list(
+  patent_id = col_character(),
+  assignee_id = col_character()
+)
+
+patent_assignee_tbl <- vroom(
+  file       = "~/Data science/DS_101/00_data/patent/patent_assignee.tsv", 
+  delim      = "\t", 
+  col_types  = col_types,
+  na         = c("", "NA", "NULL")
+)
+
+Join_tbl <- merge(patent_assignee_tbl,assignee_tbl, by.x = "assignee_id", by.y = "id") 
+
+num_tbl<- Join_tbl%>%
+  select(patent_id,organization)%>% 
+  count(organization)%>%
+  group_by(organization) 
+
+final_tbl <- num_tbl %>%
+  select (organization,n)%>%
+  arrange(desc(n))
+
+#List of top ten companies with most assigned/granted patents.
+
+head(final_tbl,10)
+
+# List the top 10 companies with the most new granted patents for 2019.
+
+col_types <- list(
+  id = col_character(),
+  date = col_date("%Y-%m-%d"),
+  num_claims = col_double()
+)
+
+patent_tbl <- vroom(
+  file       = "~/Data science/DS_101/00_data/patent/patent.tsv", 
+  delim      = "\t", 
+  col_types  = col_types,
+  na         = c("", "NA", "NULL")
+)
+
+Join_tbl <- merge(patent_assignee_tbl,assignee_tbl, by.x = "assignee_id", by.y = "id") 
+Join_1_tbl <- merge(patent_tbl,Join_tbl, by.x="id", by.y ="patent_id") 
+
+Filter_2019_tbl <- Join_1_tbl %>%
+  select("id", "date","organization")%>%
+  filter(between(date,as.Date("2019-01-01"), as.Date("2020-01-01")))%>%
+  count(organization)%>%
+  group_by(organization)    
+
+
+
+Final_tbl <- Filter_2019_tbl %>%
+  select (organization,n)%>%
+  arrange(desc(n))
+
+#list of 10 organisation 
+
+head(Final_tbl,10)
+
+# list of the top 10 companies (worldwide) with the most patents. The top 5 USPTO tech main classes
+
+col_types <- list(
+  patent_id = col_character(),
+  mainclass_id = col_character(),
+  sequence = col_character()
+  
+)
+
+uspc_tbl <- vroom(
+  file       = "~/Data science/DS_101/00_data/patent/uspc.tsv", 
+  delim      = "\t", 
+  col_types  = col_types,
+  na         = c("", "NA", "NULL")
+)
+
+Join_tbl <- merge(patent_assignee_tbl,assignee_tbl, by.x = "assignee_id", by.y = "id") 
+Join_tbl_3 <- merge(Join_tbl,uspc_tbl, by = "patent_id")
+
+final_tbl <- Join_tbl_3 %>%
+  select(patent_id,organization,mainclass_id,sequence)%>%
+  count(organization)%>%
+  group_by(organization)%>%    
+  select (organization,n)%>%
+  arrange(desc(n))
+
+head(final_tbl,10)
+
+
+
 ```
 # challenge 4: Data Visualization
 ## Cumilative Covid cases
@@ -276,10 +329,13 @@ str(covid_data_tbl)
 #getting month name column
 covid_data_tbl$month_name<-months(as.Date(covid_data_tbl$dateRep))
 
+covid_data_tbl$month<-month(as.POSIXlt(covid_data_tbl$dateRep,format="%d/%m/%Y"))
+covid_data_tbl$year<-year(as.POSIXlt(covid_data_tbl$dateRep,format="%d/%m/%Y"))
+
 ##rolling up data to month year country Level
 covid_mon_yr_country_lvl <- covid_data_tbl %>% 
   dplyr::group_by(month,month_name,year,countriesAndTerritories,geoId,countryterritoryCode,continentExp) %>% 
-  dplyr::summarise(cases = sum(cases, na.rm = T)) %>% 
+  dplyr::summarise(cases = sum(cases_weekly, na.rm = T)) %>% 
   dplyr::ungroup()
 
 ##creating Cummulative Cases column
@@ -289,7 +345,7 @@ covid_mon_yr_country_lvl <- covid_mon_yr_country_lvl %>%
   dplyr::mutate(cumulative_cases = cumsum(cases)) %>% 
   dplyr::ungroup()
 
-##I am filtering only for those shown in the graph and for the year = 2020
+##Filtering only for those shown in the graph and for the year = 2020
 covid_mon_yr_country_lvl_fil<- covid_mon_yr_country_lvl %>% 
   dplyr::filter(countriesAndTerritories %in% c("Germany","Spain","France","United_Kingdom","United_States_of_America")& year == 2020) %>%
   dplyr::rename('Continent_Country' = countriesAndTerritories)

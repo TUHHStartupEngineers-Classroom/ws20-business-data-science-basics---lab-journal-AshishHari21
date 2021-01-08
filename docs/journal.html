@@ -413,7 +413,7 @@ div.tocify {
 <p>This is a solution website for 4 challenges given in the course “Business Data Science Basics”.Below you can see both R-scripts and results of individual challenges.All the R scripts are also accumulated in git hub repository inside folder named “solution”</p>
 <div id="challenge-1-bike-sales-report" class="section level1">
 <h1><span class="header-section-number">1</span> Challenge 1 : bike sales report</h1>
-<p>Last compiled: 2020-12-06</p>
+<p>Last compiled: 2021-01-08</p>
 <p>In the first task, Different analysis was carried out on bike sales with respect to year and location. First analysis was on sales by location and it was found out to be North Rhine-Westphalia with highest sales Second analysis was on sales by years for different states.</p>
 <div id="r-script" class="section level2">
 <h2><span class="header-section-number">1.1</span> R script</h2>
@@ -532,7 +532,7 @@ resp</code></pre>
 </div>
 <div id="challenge-2.-web-scraping" class="section level2">
 <h2><span class="header-section-number">2.2</span> Challenge 2. web scraping</h2>
-<p>Following piece of code gathers the cycle models from radon bikes and its priceses</p>
+<p>Following piece of code gathers the cycle models from radon bikes and its prices</p>
 <pre class="r"><code>library(tidyverse) # Main Package - Loads dplyr, purrr, etc.
 library(rvest)     # HTML Hacking &amp; Web Scraping
 library(xopen)     # Quickly opening URLs
@@ -612,64 +612,142 @@ head(bike_df,10)</code></pre>
 </div>
 <div id="challenge-3-data-wrangling" class="section level1">
 <h1><span class="header-section-number">3</span> Challenge 3: Data Wrangling</h1>
-<p>This challenge had lot of challenges, and hence was not able to complete it fully. At first I was not able to allocate a vector for merged data since the data was too huge.And when converting patant_tbl to data table system always used to crash. Hence I have answered only the 1st question in this challenge. Since 2nd challenge and third challenge requires data to be merged I was not able to complete it.</p>
-<pre class="r"><code># library(tidyverse)
-# library(dplyr)
-# library(vroom)
-# library(tictoc)
-# library(data.table)
+<p>R code for US patent data analysis</p>
+<pre class="r"><code>library(vroom)
+library(data.table)
+library(tidyverse)
+library(lubridate)
 
-# col_types &lt;- cols_only(
-  # id = col_character(),
-  # type = col_character(),
-  # number = col_character(),
-  # country = col_character(),
-  # date = col_date(&quot;%d-%m-%y&quot;),
-  # abstract = col_character(),
-  # title = col_character(),
-  # kind = col_character(),
-  # num_claims = col_double(),
-  # filename = col_character(),
-  # withdrawn = col_double()
-# )
+col_types &lt;- list(
+  id = col_character(),
+  type = col_character(),
+  organization = col_character()
+)
 
-# patent_tbl &lt;- vroom(
-  # file       = &quot;~/Data science/DS_101/00_data/patent/patent.tsv&quot;, 
-  # delim      = &quot;\t&quot;, 
-  # col_types  = col_types,
-  # na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)
-# )
-# col_types_PA &lt;- cols_only(
-  # patent_id = col_character()
-  # assignee_id = col_character(),
-  # location_id = col_character()
-  # )
-# patent_assignee_tbl &lt;- vroom(
-  # file       = &quot;~/Data science/DS_101/00_data/patent/patent_assignee.tsv&quot;, 
-  # delim      = &quot;\t&quot;, 
-  # col_types  = col_types_PA,
-  # na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)
-# )
- # col_types_A &lt;- cols_only(
-   # id = col_character(),
-   # type = col_double(),
-   # name_first = col_character(),
-   # name_last = col_character(),
-   # organization = col_character()
- # )
-# assignee_tbl &lt;- vroom(
-  # file       = &quot;~/Data science/DS_101/00_data/patent/assignee.tsv&quot;, 
-  # delim      = &quot;\t&quot;, 
-  # col_types  = col_types_A,
-  # na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)
-# )
+assignee_tbl &lt;- vroom(
+  file       = &quot;~/Data science/DS_101/00_data/patent/assignee.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)
+)
 
-# # gives the number of times a company is repeated in decending order. From which 
-# # we can get highest to lowest number of patient for each company
-# assignee_tbl %&gt;%
-  # filter(!is.na(organization)) %&gt;%
-  # count(organization) %&gt;%
-  # arrange(desc(n))</code></pre>
+col_types &lt;- list(
+  patent_id = col_character(),
+  assignee_id = col_character()
+)
+
+patent_assignee_tbl &lt;- vroom(
+  file       = &quot;~/Data science/DS_101/00_data/patent/patent_assignee.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)
+)
+
+Join_tbl &lt;- merge(patent_assignee_tbl,assignee_tbl, by.x = &quot;assignee_id&quot;, by.y = &quot;id&quot;) 
+
+num_tbl&lt;- Join_tbl%&gt;%
+  select(patent_id,organization)%&gt;% 
+  count(organization)%&gt;%
+  group_by(organization) 
+
+final_tbl &lt;- num_tbl %&gt;%
+  select (organization,n)%&gt;%
+  arrange(desc(n))
+
+#List of top ten companies with most assigned/granted patents.
+
+head(final_tbl,10)</code></pre>
+<pre><code>## # A tibble: 10 x 2
+## # Groups:   organization [10]
+##    organization                                    n
+##    &lt;chr&gt;                                       &lt;int&gt;
+##  1 International Business Machines Corporation  7547
+##  2 Samsung Electronics Co., Ltd.                5835
+##  3 Canon Kabushiki Kaisha                       4099
+##  4 Sony Corporation                             3326
+##  5 Microsoft Corporation                        3165
+##  6 Google Inc.                                  2668
+##  7 Kabushiki Kaisha Toshiba                     2656
+##  8 QUALCOMM Incorporated                        2597
+##  9 LG Electronics Inc.                          2459
+## 10 &lt;NA&gt;                                         2377</code></pre>
+<pre class="r"><code># List the top 10 companies with the most new granted patents for 2019.
+
+col_types &lt;- list(
+  id = col_character(),
+  date = col_date(&quot;%Y-%m-%d&quot;),
+  num_claims = col_double()
+)
+
+patent_tbl &lt;- vroom(
+  file       = &quot;~/Data science/DS_101/00_data/patent/patent.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)
+)
+
+Join_tbl &lt;- merge(patent_assignee_tbl,assignee_tbl, by.x = &quot;assignee_id&quot;, by.y = &quot;id&quot;) 
+Join_1_tbl &lt;- merge(patent_tbl,Join_tbl, by.x=&quot;id&quot;, by.y =&quot;patent_id&quot;) 
+
+Filter_2019_tbl &lt;- Join_1_tbl %&gt;%
+  select(&quot;id&quot;, &quot;date&quot;,&quot;organization&quot;)%&gt;%
+  filter(between(date,as.Date(&quot;2019-01-01&quot;), as.Date(&quot;2020-01-01&quot;)))%&gt;%
+  count(organization)%&gt;%
+  group_by(organization)    
+
+
+
+Final_tbl &lt;- Filter_2019_tbl %&gt;%
+  select (organization,n)%&gt;%
+  arrange(desc(n))
+
+#list of 10 organisation 
+
+head(Final_tbl,10)</code></pre>
+<pre><code>## # A tibble: 0 x 2
+## # Groups:   organization [0]
+## # ... with 2 variables: organization &lt;chr&gt;, n &lt;int&gt;</code></pre>
+<pre class="r"><code># list of the top 10 companies (worldwide) with the most patents. The top 5 USPTO tech main classes
+
+col_types &lt;- list(
+  patent_id = col_character(),
+  mainclass_id = col_character(),
+  sequence = col_character()
+  
+)
+
+uspc_tbl &lt;- vroom(
+  file       = &quot;~/Data science/DS_101/00_data/patent/uspc.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)
+)
+
+Join_tbl &lt;- merge(patent_assignee_tbl,assignee_tbl, by.x = &quot;assignee_id&quot;, by.y = &quot;id&quot;) 
+Join_tbl_3 &lt;- merge(Join_tbl,uspc_tbl, by = &quot;patent_id&quot;)
+
+final_tbl &lt;- Join_tbl_3 %&gt;%
+  select(patent_id,organization,mainclass_id,sequence)%&gt;%
+  count(organization)%&gt;%
+  group_by(organization)%&gt;%    
+  select (organization,n)%&gt;%
+  arrange(desc(n))
+
+head(final_tbl,10)</code></pre>
+<pre><code>## # A tibble: 10 x 2
+## # Groups:   organization [10]
+##    organization                                    n
+##    &lt;chr&gt;                                       &lt;int&gt;
+##  1 International Business Machines Corporation 19056
+##  2 Samsung Electronics Co., Ltd.               14523
+##  3 Canon Kabushiki Kaisha                       9467
+##  4 Sony Corporation                             8372
+##  5 QUALCOMM Incorporated                        7322
+##  6 Microsoft Corporation                        7195
+##  7 Kabushiki Kaisha Toshiba                     6957
+##  8 Google Inc.                                  6082
+##  9 LG Electronics Inc.                          5694
+## 10 Panasonic Corporation                        5641</code></pre>
 </div>
 <div id="challenge-4-data-visualization" class="section level1">
 <h1><span class="header-section-number">4</span> challenge 4: Data Visualization</h1>
@@ -901,40 +979,39 @@ covid_data_tbl$countriesAndTerritories %&gt;% unique()</code></pre>
 <pre class="r"><code>class(covid_data_tbl)</code></pre>
 <pre><code>## [1] &quot;data.table&quot; &quot;data.frame&quot;</code></pre>
 <pre class="r"><code>colnames(covid_data_tbl)</code></pre>
-<pre><code>##  [1] &quot;dateRep&quot;                                                   
-##  [2] &quot;day&quot;                                                       
-##  [3] &quot;month&quot;                                                     
-##  [4] &quot;year&quot;                                                      
-##  [5] &quot;cases&quot;                                                     
-##  [6] &quot;deaths&quot;                                                    
-##  [7] &quot;countriesAndTerritories&quot;                                   
-##  [8] &quot;geoId&quot;                                                     
-##  [9] &quot;countryterritoryCode&quot;                                      
-## [10] &quot;popData2019&quot;                                               
-## [11] &quot;continentExp&quot;                                              
-## [12] &quot;Cumulative_number_for_14_days_of_COVID-19_cases_per_100000&quot;</code></pre>
+<pre><code>##  [1] &quot;dateRep&quot;                                        
+##  [2] &quot;year_week&quot;                                      
+##  [3] &quot;cases_weekly&quot;                                   
+##  [4] &quot;deaths_weekly&quot;                                  
+##  [5] &quot;countriesAndTerritories&quot;                        
+##  [6] &quot;geoId&quot;                                          
+##  [7] &quot;countryterritoryCode&quot;                           
+##  [8] &quot;popData2019&quot;                                    
+##  [9] &quot;continentExp&quot;                                   
+## [10] &quot;notification_rate_per_100000_population_14-days&quot;</code></pre>
 <pre class="r"><code>str(covid_data_tbl)</code></pre>
-<pre><code>## Classes &#39;data.table&#39; and &#39;data.frame&#39;:   60196 obs. of  12 variables:
-##  $ dateRep                                                   : chr  &quot;06/12/2020&quot; &quot;05/12/2020&quot; &quot;04/12/2020&quot; &quot;03/12/2020&quot; ...
-##  $ day                                                       : int  6 5 4 3 2 1 30 29 28 27 ...
-##  $ month                                                     : int  12 12 12 12 12 12 11 11 11 11 ...
-##  $ year                                                      : int  2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 ...
-##  $ cases                                                     : int  234 235 119 202 400 272 0 228 214 0 ...
-##  $ deaths                                                    : int  10 18 5 19 48 11 0 11 15 0 ...
-##  $ countriesAndTerritories                                   : chr  &quot;Afghanistan&quot; &quot;Afghanistan&quot; &quot;Afghanistan&quot; &quot;Afghanistan&quot; ...
-##  $ geoId                                                     : chr  &quot;AF&quot; &quot;AF&quot; &quot;AF&quot; &quot;AF&quot; ...
-##  $ countryterritoryCode                                      : chr  &quot;AFG&quot; &quot;AFG&quot; &quot;AFG&quot; &quot;AFG&quot; ...
-##  $ popData2019                                               : int  38041757 38041757 38041757 38041757 38041757 38041757 38041757 38041757 38041757 38041757 ...
-##  $ continentExp                                              : chr  &quot;Asia&quot; &quot;Asia&quot; &quot;Asia&quot; &quot;Asia&quot; ...
-##  $ Cumulative_number_for_14_days_of_COVID-19_cases_per_100000: num  7.33 7.12 7.11 7.54 7.01 ...
+<pre><code>## Classes &#39;data.table&#39; and &#39;data.frame&#39;:   9577 obs. of  10 variables:
+##  $ dateRep                                        : chr  &quot;04/01/2021&quot; &quot;28/12/2020&quot; &quot;21/12/2020&quot; &quot;14/12/2020&quot; ...
+##  $ year_week                                      : chr  &quot;2020-53&quot; &quot;2020-52&quot; &quot;2020-51&quot; &quot;2020-50&quot; ...
+##  $ cases_weekly                                   : int  902 1994 740 1757 1672 1073 1368 1164 606 800 ...
+##  $ deaths_weekly                                  : int  60 88 111 71 137 68 69 61 24 27 ...
+##  $ countriesAndTerritories                        : chr  &quot;Afghanistan&quot; &quot;Afghanistan&quot; &quot;Afghanistan&quot; &quot;Afghanistan&quot; ...
+##  $ geoId                                          : chr  &quot;AF&quot; &quot;AF&quot; &quot;AF&quot; &quot;AF&quot; ...
+##  $ countryterritoryCode                           : chr  &quot;AFG&quot; &quot;AFG&quot; &quot;AFG&quot; &quot;AFG&quot; ...
+##  $ popData2019                                    : int  38041757 38041757 38041757 38041757 38041757 38041757 38041757 38041757 38041757 38041757 ...
+##  $ continentExp                                   : chr  &quot;Asia&quot; &quot;Asia&quot; &quot;Asia&quot; &quot;Asia&quot; ...
+##  $ notification_rate_per_100000_population_14-days: num  7.61 7.19 6.56 9.01 7.22 6.42 6.66 4.65 3.7 3.77 ...
 ##  - attr(*, &quot;.internal.selfref&quot;)=&lt;externalptr&gt;</code></pre>
 <pre class="r"><code>#getting month name column
 covid_data_tbl$month_name&lt;-months(as.Date(covid_data_tbl$dateRep))
 
+covid_data_tbl$month&lt;-month(as.POSIXlt(covid_data_tbl$dateRep,format=&quot;%d/%m/%Y&quot;))
+covid_data_tbl$year&lt;-year(as.POSIXlt(covid_data_tbl$dateRep,format=&quot;%d/%m/%Y&quot;))
+
 ##rolling up data to month year country Level
 covid_mon_yr_country_lvl &lt;- covid_data_tbl %&gt;% 
   dplyr::group_by(month,month_name,year,countriesAndTerritories,geoId,countryterritoryCode,continentExp) %&gt;% 
-  dplyr::summarise(cases = sum(cases, na.rm = T)) %&gt;% 
+  dplyr::summarise(cases = sum(cases_weekly, na.rm = T)) %&gt;% 
   dplyr::ungroup()
 
 ##creating Cummulative Cases column
@@ -944,7 +1021,7 @@ covid_mon_yr_country_lvl &lt;- covid_mon_yr_country_lvl %&gt;%
   dplyr::mutate(cumulative_cases = cumsum(cases)) %&gt;% 
   dplyr::ungroup()
 
-##I am filtering only for those shown in the graph and for the year = 2020
+##Filtering only for those shown in the graph and for the year = 2020
 covid_mon_yr_country_lvl_fil&lt;- covid_mon_yr_country_lvl %&gt;% 
   dplyr::filter(countriesAndTerritories %in% c(&quot;Germany&quot;,&quot;Spain&quot;,&quot;France&quot;,&quot;United_Kingdom&quot;,&quot;United_States_of_America&quot;)&amp; year == 2020) %&gt;%
   dplyr::rename(&#39;Continent_Country&#39; = countriesAndTerritories)
@@ -970,44 +1047,44 @@ covid_mon_yr_country_lvl_fil %&gt;%
                    nudge_x = 1,na.rm = TRUE)</code></pre>
 <p><img src="journal_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 <pre class="r"><code>covid_data_tbl %&gt;% dplyr::filter(continentExp == &quot;Europe&quot;)</code></pre>
-<pre><code>##           dateRep day month year cases deaths countriesAndTerritories geoId
-##     1: 06/12/2020   6    12 2020   846     19                 Albania    AL
-##     2: 05/12/2020   5    12 2020   801     18                 Albania    AL
-##     3: 04/12/2020   4    12 2020   782     13                 Albania    AL
-##     4: 03/12/2020   3    12 2020   705     17                 Albania    AL
-##     5: 02/12/2020   2    12 2020   832     12                 Albania    AL
-##    ---                                                                     
-## 16928: 04/01/2020   4     1 2020     0      0          United_Kingdom    UK
-## 16929: 03/01/2020   3     1 2020     0      0          United_Kingdom    UK
-## 16930: 02/01/2020   2     1 2020     0      0          United_Kingdom    UK
-## 16931: 01/01/2020   1     1 2020     0      0          United_Kingdom    UK
-## 16932: 31/12/2019  31    12 2019     0      0          United_Kingdom    UK
-##        countryterritoryCode popData2019 continentExp
-##     1:                  ALB     2862427       Europe
-##     2:                  ALB     2862427       Europe
-##     3:                  ALB     2862427       Europe
-##     4:                  ALB     2862427       Europe
-##     5:                  ALB     2862427       Europe
-##    ---                                              
-## 16928:                  GBR    66647112       Europe
-## 16929:                  GBR    66647112       Europe
-## 16930:                  GBR    66647112       Europe
-## 16931:                  GBR    66647112       Europe
-## 16932:                  GBR    66647112       Europe
-##        Cumulative_number_for_14_days_of_COVID-19_cases_per_100000 month_name
-##     1:                                                   347.6770   December
-##     2:                                                   343.8690   December
-##     3:                                                   345.0918   December
-##     4:                                                   345.2315   December
-##     5:                                                   345.4411   December
-##    ---                                                                      
-## 16928:                                                         NA    January
-## 16929:                                                         NA    January
-## 16930:                                                         NA    January
-## 16931:                                                         NA    January
-## 16932:                                                         NA   December</code></pre>
+<pre><code>##          dateRep year_week cases_weekly deaths_weekly countriesAndTerritories
+##    1: 04/01/2021   2020-53         2866            29                 Albania
+##    2: 28/12/2020   2020-52         3569            76                 Albania
+##    3: 21/12/2020   2020-51         4473            85                 Albania
+##    4: 14/12/2020   2020-50         5542            98                 Albania
+##    5: 07/12/2020   2020-49         5363           107                 Albania
+##   ---                                                                        
+## 2666: 03/02/2020   2020-05            2             0          United_Kingdom
+## 2667: 27/01/2020   2020-04            0             0          United_Kingdom
+## 2668: 20/01/2020   2020-03            0             0          United_Kingdom
+## 2669: 13/01/2020   2020-02            0             0          United_Kingdom
+## 2670: 06/01/2020   2020-01            0             0          United_Kingdom
+##       geoId countryterritoryCode popData2019 continentExp
+##    1:    AL                  ALB     2862427       Europe
+##    2:    AL                  ALB     2862427       Europe
+##    3:    AL                  ALB     2862427       Europe
+##    4:    AL                  ALB     2862427       Europe
+##    5:    AL                  ALB     2862427       Europe
+##   ---                                                    
+## 2666:    UK                  GBR    66647112       Europe
+## 2667:    UK                  GBR    66647112       Europe
+## 2668:    UK                  GBR    66647112       Europe
+## 2669:    UK                  GBR    66647112       Europe
+## 2670:    UK                  GBR    66647112       Europe
+##       notification_rate_per_100000_population_14-days month_name month year
+##    1:                                          224.81    January     1 2021
+##    2:                                          280.95   December    12 2020
+##    3:                                          349.88   December    12 2020
+##    4:                                          380.97   December    12 2020
+##    5:                                          357.28   December    12 2020
+##   ---                                                                      
+## 2666:                                            0.00   February     2 2020
+## 2667:                                            0.00    January     1 2020
+## 2668:                                            0.00    January     1 2020
+## 2669:                                            0.00    January     1 2020
+## 2670:                                              NA    January     1 2020</code></pre>
 <pre class="r"><code>sum(covid_data_tbl$cases,na.rm = T)</code></pre>
-<pre><code>## [1] 66369433</code></pre>
+<pre><code>## [1] 84532824</code></pre>
 </div>
 <div id="mortality-rate" class="section level2">
 <h2><span class="header-section-number">4.2</span> Mortality rate</h2>
